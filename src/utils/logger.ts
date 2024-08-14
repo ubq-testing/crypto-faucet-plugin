@@ -11,6 +11,7 @@ export function throwError(err: string, rest?: object): never {
 export async function logAndComment(context: Context, type: LogLevel, message: string, metadata?: object) {
   const { logger, octokit, payload } = context;
   const log = logger[type](message, metadata);
+
   if (log) {
     await octokit.issues.createComment({
       owner: payload.repository.owner.login,

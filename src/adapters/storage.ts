@@ -2,54 +2,44 @@ import manifest from "../../manifest.json";
 import { Context } from "../types";
 import { throwError } from "../utils/logger";
 
-type UserStorage = { claimed: number, lastClaim: Date | null };
-type StorageLayout = Record<string, UserStorage>;
+type UserStorage = { claimed: number, lastClaim: Date | null, wallet: string | null };
+export type StorageLayout = Record<string, UserStorage>;
 
 export class Storage {
     context: Context;
     data: StorageLayout;
-    static instance: Storage;
 
     constructor(context: Context) {
         this.context = context;
         this.data = {};
     }
 
-    static async getInstance(context: Context) {
-        if (!this.instance) {
-            this.instance = new Storage(context);
-        }
-        await this.instance.load();
-        return this.instance;
+    public async init() {
+        await this.load();
     }
 
-    static async create(context: Context) {
-        const instance = new Storage(context);
-        await instance.load();
-        return instance;
+    public getUserStorage(username: string) {
+        return this.data[username];
+    }
+
+    public setUserStorage(username: string, userData: UserStorage) {
+        this.data[username] = userData;
+    }
+
+
+    public async save(newData: UserStorage) {
+        const data = JSON.stringify(newData, null, 2);
+        await this.saveToStorage(this.context, data);
     }
 
     async load() {
         const data = await this.fetchStorage(this.context);
         if (data) {
-            this.data = JSON.parse(data);
+            this.data = data;
         } else {
             // TODO: Maybe write a new file although seems dangerous, needs better handling
             throwError("No data found in storage");
         }
-    }
-
-    async save(newData: UserStorage) {
-        const data = JSON.stringify(newData, null, 2);
-        await this.saveToStorage(this.context, data);
-    }
-
-    get(username: string) {
-        return this.data[username];
-    }
-
-    set(username: string, userData: UserStorage) {
-        this.data[username] = userData;
     }
 
     /**

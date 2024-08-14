@@ -1,67 +1,69 @@
-import { BigNumberish, ethers, Wallet } from "ethers";
-import { Context } from "../types";
+import { BigNumber, BigNumberish, ethers, Wallet } from "ethers";
+import { Args, Context } from "../types";
 import { logAndComment, throwError } from "../utils/logger";
 import { NetworkId, RPCHandler } from "@ubiquity-dao/rpc-handler";
-import { Logs, PrettyLogs } from "@ubiquity-dao/ubiquibot-logger";
-import { LogInterface } from "@ubiquity-dao/rpc-handler/dist/types/logs";
+import { register } from "./register";
 
-type FaucetParams = string[];
-
-export async function faucet(context: Context, args: FaucetParams) {
-    const { octokit, payload, config, logger } = context;
-
-    if (args.length === 0) {
-        return "No recipients provided";
-    }
-
-    const { recipient, networkId, amount, token } = await parseArgs(context, args);
-    let value = BigInt(0);
-    let isNative = false;
-
-    if (config.nativeGasToken) {
-        value = config.nativeGasToken
-        isNative = true;
-    } else if (config.distributionTokens) {
-        value = config.distributionTokens[token];
-    } else {
-        await logAndComment(context, "error", "No token address provided");
-        throwError("No token address provided");
-    }
-
-    const wallet = await getWalletSigner(config.fundingWalletPrivateKey, networkId);
-
-    await handleTransfer(context, wallet, recipient, value, isNative, token);
-
+function isEthAddress(address: string) {
+    if (!address) return false;
+    return /^0x[a-fA-F0-9]{40}$/.test(address);
 }
 
-export async function handleTransfer(context: Context, wallet: ethers.Wallet, recipient: string, value: BigNumberish, isNative: boolean, token?: string) {
+export async function faucet(context: Context, args: Args) {
+    const { config, storage } = context;
+    const { recipient, networkId, amount, token } = args;
+
+    const userWallet = storage.getUserStorage(recipient);
+    if (!userWallet.wallet) {
+        return await register(context, args);
+    }
+    let value = BigInt(0);
+    const isNative = token === "native";
+    const withoutTokenAndAmount = !(amount || token);
+    const withRecipientAndNetwork = recipient && networkId;
+    const isDefaultNative = withoutTokenAndAmount && withRecipientAndNetwork;
+
+    if (isNative || isDefaultNative) {
+        /**
+         * "/faucet <recipient> <networkId> <amount> <token>"
+         * OR
+         * "/faucet <recipient> <networkId>"
+         */
+        value = amount ? amount : config?.nativeGasToken ? config.nativeGasToken : BigInt(0);
+    } else if (withRecipientAndNetwork && token && isEthAddress(token)) {
+        /**
+         * "/faucet <recipient> <networkId> <amount> <token>"
+         */
+        value = amount ? amount : config.distributionTokens?.[token] ? config.distributionTokens[token] : BigInt(0);
+    } else {
+        return throwError(`Incorrect arguments provided:`, { recipient, networkId, amount, token });
+    }
+
+    if (!value || value <= BigInt(0)) {
+        return throwError("Invalid amount");
+    }
+    const wallet = await getWalletSigner(config.fundingWalletPrivateKey, networkId);
+    return await handleTransfer(context, wallet, userWallet.wallet, value, isNative, token);
+}
+
+export async function handleTransfer(context: Context, wallet: ethers.Wallet, recipient: string, value: BigInt, isNative: boolean, token?: string) {
+
     try {
-        let tx: ethers.TransactionLike<string>;
+        let tx: ethers.providers.TransactionResponse | null = null;
 
         if (isNative) {
-            tx = await wallet.sendTransaction(
-                await wallet.populateTransaction({
-                    to: recipient,
-                    value: value,
-                })
-            );
+            tx = await wallet.sendTransaction({ to: recipient, value: BigNumber.from(value) });
         } else if (token) {
-            const contract = new ethers.Contract(token, ["function transfer(address to, uint256 value)"], wallet);
+            const contract = new ethers.Contract(token, ["function transfer(address to, uint256 value)"], wallet.provider);
             tx = await contract.transfer(recipient, value);
         } else {
             throwError("Token address must be provided for non-native transfers", { recipient, value, isNative, token });
         }
 
-        const fulfilledTx = tx.hash ? await wallet.provider?.waitForTransaction(tx.hash) : null;
-
-        if (fulfilledTx?.status === 1) {
-            await logAndComment(context, "info", `Successfully sent ${value} to ${recipient}`);
-        } else {
-            throwError("Failed to send transaction");
-        }
-    } catch (error) {
-        const log = await logAndComment(context, "error", JSON.stringify(value));
-        throwError(log.logMessage.diff);
+        const fulfilledTx = tx?.hash ? await wallet.provider?.waitForTransaction(tx.hash) : null;
+        return fulfilledTx;
+    } catch (err) {
+        throw await logAndComment(context, "error", "Failed to send transaction", { err, recipient, isNative, token, success: false, value: ethers.BigNumber.from(value).toString() });
     }
 }
 
@@ -86,31 +88,11 @@ export async function getRpcProvider(networkId: NetworkId) {
     })
 
     const provider = await rpcHandler.getFastestRpcProvider();
-    return new ethers.JsonRpcProvider(provider.connection.url);
+    return new ethers.providers.JsonRpcProvider(provider.connection.url);
 }
 
 export async function getWalletSigner(privateKey: string, networkId: string) {
-    const provider = await getRpcProvider(networkId as NetworkId);
-    return new ethers.Wallet(privateKey, provider);
+    return new ethers.Wallet(privateKey, new ethers.providers.JsonRpcProvider("http://localhost:8545", networkId));
 }
 
-type Args = {
-    recipient: string;
-    networkId: string;
-    amount: BigInt;
-    token: string;
-}
 
-async function parseArgs(context: Context, args: string[]): Promise<Args> {
-    if (args.length === 4) {
-        return {
-            recipient: args[0].toLowerCase(),
-            networkId: args[1],
-            amount: BigInt(args[2]),
-            token: args[3].toLowerCase()
-        }
-    } else {
-        await logAndComment(context, "error", "Invalid number of arguments");
-        throwError("Invalid number of arguments");
-    }
-};

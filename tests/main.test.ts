@@ -8,13 +8,41 @@ import { STRINGS } from "./__mocks__/strings";
 import { createComment, setupTests } from "./__mocks__/helpers";
 import manifest from "../manifest.json";
 import dotenv from "dotenv";
-import { Logs } from "@ubiquity-dao/ubiquibot-logger";
+import { LogReturn, Logs } from "@ubiquity-dao/ubiquibot-logger";
 import { Env } from "../src/types";
 import { runPlugin } from "../src/plugin";
+import { HandlerConstructorConfig, RPCHandler } from "@ubiquity-dao/rpc-handler";
+import { Storage } from "../src/adapters/storage";
+import { ethers } from "ethers";
+import { context } from "@actions/github";
 
 dotenv.config();
 jest.requireActual("@octokit/rest");
+
+jest.mock("@ubiquity-dao/rpc-handler");
+const mockRPCHandler = {
+  getFastestRpcProvider: jest.fn().mockResolvedValue(new ethers.providers.JsonRpcProvider("http://localhost:8545")),
+};
+(RPCHandler as unknown as jest.Mock).mockImplementation(() => mockRPCHandler);
+
 const octokit = new Octokit();
+
+export const testConfig: HandlerConstructorConfig = {
+  networkId: "100",
+  autoStorage: false,
+  cacheRefreshCycles: 3,
+  networkName: null,
+  networkRpcs: null,
+  rpcTimeout: 600,
+  runtimeRpcs: null,
+  proxySettings: {
+    retryCount: 3,
+    retryDelay: 10,
+    logTier: "info",
+    logger: null,
+    strictLogs: true,
+  },
+};
 
 beforeAll(() => {
   server.listen();
@@ -38,64 +66,31 @@ describe("Plugin tests", () => {
     expect(content).toEqual(manifest);
   });
 
-  it("Should handle an issue comment event", async () => {
-    const { context, infoSpy, errorSpy, debugSpy, okSpy, verboseSpy } = createContext();
-
-    expect(context.eventName).toBe("issue_comment.created");
-    expect(context.payload.comment.body).toBe("/Hello");
-
-    await runPlugin(context);
-
-    expect(errorSpy).not.toHaveBeenCalled();
-    expect(debugSpy).toHaveBeenNthCalledWith(1, STRINGS.EXECUTING_HELLO_WORLD, {
-      caller: STRINGS.CALLER_LOGS_ANON,
-      sender: STRINGS.USER_1,
-      repo: STRINGS.TEST_REPO,
-      issueNumber: 1,
-      owner: STRINGS.USER_1,
-    });
-    expect(infoSpy).toHaveBeenNthCalledWith(1, STRINGS.HELLO_WORLD);
-    expect(okSpy).toHaveBeenNthCalledWith(1, STRINGS.SUCCESSFULLY_CREATED_COMMENT);
-    expect(verboseSpy).toHaveBeenNthCalledWith(1, STRINGS.EXITING_HELLO_WORLD);
+  it("Should successfully distribute gas tokens", async () => {
+    const { context } = createContext("/faucet keyrxng 100 1 native");
+    const result = await runPlugin(context);
+    expect(result).toHaveProperty("status", 1);
+    const account = new ethers.Wallet(context.config.fundingWalletPrivateKey).address;
+    expect(result).toHaveProperty("from", account);
   });
 
-  it("Should respond with `Hello, World!` in response to /Hello", async () => {
-    const { context } = createContext();
-    await runPlugin(context);
-    const comments = db.issueComments.getAll();
-    expect(comments.length).toBe(2);
-    expect(comments[1].body).toBe(STRINGS.HELLO_WORLD);
-  });
+  it("Should handle the /register command", async () => {
+    const { context } = createContext("/register");
+    const result = await runPlugin(context);
+    if (!result) {
+      throw new Error("Expected LogReturn");
+    }
 
-  it("Should respond with `Hello, Code Reviewers` in response to /Hello", async () => {
-    const { context } = createContext(STRINGS.CONFIGURABLE_RESPONSE);
-    await runPlugin(context);
-    const comments = db.issueComments.getAll();
-    expect(comments.length).toBe(2);
-    expect(comments[1].body).toBe(STRINGS.CONFIGURABLE_RESPONSE);
-  });
-
-  it("Should not respond to a comment that doesn't contain /Hello", async () => {
-    const { context, errorSpy } = createContext(STRINGS.CONFIGURABLE_RESPONSE, STRINGS.INVALID_COMMAND);
-    await runPlugin(context);
-    const comments = db.issueComments.getAll();
-
-    expect(comments.length).toBe(1);
-    expect(errorSpy).toHaveBeenNthCalledWith(1, STRINGS.INVALID_USE_OF_SLASH_COMMAND, { caller: STRINGS.CALLER_LOGS_ANON, body: STRINGS.INVALID_COMMAND });
+    if ("logMessage" in result) {
+      expect(result.logMessage.raw).toContain("Please go to https://safe.ubq.fi to finalize registering your account.");
+    } else {
+      throw new Error("Expected LogReturn");
+    }
   });
 });
 
-/**
- * The heart of each test. This function creates a context object with the necessary data for the plugin to run.
- *
- * So long as everything is defined correctly in the db (see `./__mocks__/helpers.ts: setupTests()`),
- * this function should be able to handle any event type and the conditions that come with it.
- *
- * Refactor according to your needs.
- */
 function createContext(
-  configurableResponse: string = "Hello, world!", // we pass the plugin configurable items here
-  commentBody: string = "/Hello",
+  commentBody: string,
   repoId: number = 1,
   payloadSenderId: number = 1,
   commentId: number = 1,
@@ -108,7 +103,7 @@ function createContext(
   createComment(commentBody, commentId); // create it first then pull it from the DB and feed it to _createContext
   const comment = db.issueComments.findFirst({ where: { id: { equals: commentId } } }) as unknown as Context["payload"]["comment"];
 
-  const context = createContextInner(repo, sender, issue1, comment, configurableResponse);
+  const context = createContextInner(repo, sender, issue1, comment);
   const infoSpy = jest.spyOn(context.logger, "info");
   const errorSpy = jest.spyOn(context.logger, "error");
   const debugSpy = jest.spyOn(context.logger, "debug");
@@ -137,9 +132,8 @@ function createContextInner(
   sender: Context["payload"]["sender"],
   issue: Context["payload"]["issue"],
   comment: Context["payload"]["comment"],
-  configurableResponse: string
-): Context {
-  return {
+) {
+  const ctx: Context = {
     eventName: "issue_comment.created",
     payload: {
       action: "created",
@@ -150,11 +144,18 @@ function createContextInner(
       installation: { id: 1 } as Context["payload"]["installation"],
       organization: { login: STRINGS.USER_1 } as Context["payload"]["organization"],
     },
+    storage: {} as Storage,
     logger: new Logs("debug"),
     config: {
-      configurableResponse,
+      fundingWalletPrivateKey: "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
+      networkIds: [100, 1],
+      nativeGasToken: BigInt(1e18),
+      // distributionTokens: {}
     },
     env: {} as Env,
     octokit: octokit,
   };
+
+  ctx.storage = new Storage(ctx);
+  return ctx;
 }

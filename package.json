@@ -16,8 +16,9 @@
     "knip": "knip --config .github/knip.ts",
     "knip-ci": "knip --no-exit-code --reporter json --config .github/knip.ts",
     "prepare": "husky install",
-    "test": "jest --setupFiles dotenv/config --coverage",
-    "worker": "wrangler dev --env dev --port 4000"
+    "worker": "wrangler dev --env dev --port 4000",
+    "test:anvil": "npx tsx tests/__mocks__/anvil.ts",
+    "test": "jest --setupFiles dotenv/config --coverage"
   },
   "keywords": [
     "typescript",
@@ -36,7 +37,7 @@
     "@ubiquity-dao/rpc-handler": "^1.2.3",
     "@ubiquity-dao/ubiquibot-logger": "^1.3.0",
     "dotenv": "16.4.5",
-    "ethers": "^6.13.2",
+    "ethers": "5.7.2",
     "typebox-validators": "0.3.5"
   },
   "devDependencies": {

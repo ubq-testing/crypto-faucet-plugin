@@ -1,24 +1,23 @@
-import { Context } from "../types";
+import { Args, Context } from "../types";
 import { logAndComment, throwError } from "../utils/logger";
 
-export async function register(context: Context) {
-    const { payload, storage } = context;
-
-    const username = payload.comment.user?.login;
+export async function register(context: Context, args: Args) {
+    const { storage } = context;
+    const { recipient: username } = args;
 
     if (!username) {
-        throwError("No username found in payload");
+        throwError("No username found in args");
     }
 
-    const user = storage.get(username);
+    const user = storage.getUserStorage(username);
 
     if (user) {
-        return logAndComment(context, "info", "User already registered", { username });
+        return await logAndComment(context, "info", "User already registered", { username });
     }
 
-    storage.set(username, { claimed: 0, lastClaim: null });
+    storage.setUserStorage(username, { claimed: 0, lastClaim: null, wallet: null });
 
     await storage.save(storage.data[username]);
 
-    return logAndComment(context, "info", "Please go to https://safe.ubq.fi to finalize registering your account.", { username });
+    return await logAndComment(context, "info", "Please go to https://safe.ubq.fi to finalize registering your account.", { username });
 }
