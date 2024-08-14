@@ -33,27 +33,20 @@ export const pluginSettingsSchema = T.Object(
      */
     nativeGasToken: T.Optional(T.BigInt({ minimum: BigInt(0) })),
     /**
-     * If `nativeGasToken` is not defined then these are the tokens that will be distributed
-     * based on slash command usage.
+     * If `nativeGasToken` is not defined then these are the
+     * tokens that will be distributed to the recipients.
      * 
-     * An optional array containing the token addresses and amounts that are
+     * An optional object containing the token address as keys and amounts as values that are
      * to be distributed to the recipients.
+     * 
+     * The amount of tokens to distribute to each recipient
+     * in wei. This is the smallest unit of the token.
+     * 
+     * Native gas tokens === 1e18 (1e18 wei = 1 ether = 1 Eth = 1 XDAI = 1 MATIC etc...)
+     * 
+     * https://eth-converter.com/
      */
-    distributionTokens: T.Optional(T.Array(T.Object({
-      /**
-       * The amount of tokens to distribute to each recipient
-       * in wei. 
-       * 
-       * Native gas tokens === 1e18 (1e18 wei = 1 ether = 1 Eth = 1 XDAI = 1 MATIC etc...)
-       * 
-       * https://eth-converter.com/
-       */
-      amount: T.BigInt({ minimum: BigInt(0) }),
-      /**
-       * The token address to distribute.
-       */
-      tokenAddress: T.String(),
-    }))),
+    distributionTokens: T.Optional(T.Record(T.String(), T.BigInt({ minimum: BigInt(0) }))),
   },
 );
 

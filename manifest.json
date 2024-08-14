@@ -10,7 +10,7 @@
       "description": "Renders a link to the account abstraction user interface."
     },
     "faucet": {
-      "ubiquity:example": "/faucet keyrxng gnosis 1 xdai",
+      "ubiquity:example": "/faucet keyrxng 100 1 0x1234567890abcdef",
       "description": "Admin command to manually distribute tokens to a user."
     }
   }
