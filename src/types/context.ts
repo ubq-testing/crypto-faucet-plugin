@@ -4,11 +4,6 @@ import { Env } from "./env";
 import { PluginSettings } from "./plugin-inputs";
 import { Logs } from "@ubiquity-dao/ubiquibot-logger";
 
-/**
- * Update `manifest.json` with any events you want to support like so:
- *
- * ubiquity:listeners: ["issue_comment.created", ...]
- */
 export type SupportedEventsU = "issue_comment.created";
 
 export type SupportedEvents = {
