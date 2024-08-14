@@ -27,9 +27,6 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
-      - name: Build
-        run: yarn build
-
       - name: Start Anvil
         run: yarn test:anvil &
 
