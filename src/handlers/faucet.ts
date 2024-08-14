@@ -15,8 +15,9 @@ export async function faucet(context: Context, args: Args) {
 
     const userWallet = storage.getUserStorage(recipient);
     if (!userWallet.wallet) {
-        return await register(context, args);
+        return await register(context as Context<"issue_comment.created">, args);
     }
+
     let value = BigInt(0);
     const isNative = token === "native";
     const withoutTokenAndAmount = !(amount || token);
@@ -43,7 +44,15 @@ export async function faucet(context: Context, args: Args) {
         return throwError("Invalid amount");
     }
     const wallet = await getWalletSigner(config.fundingWalletPrivateKey, networkId);
-    return await handleTransfer(context, wallet, userWallet.wallet, value, isNative, token);
+    const transfer = await handleTransfer(context, wallet, userWallet.wallet, value, isNative, token);
+
+    if (transfer) {
+        userWallet.claimed++;
+        userWallet.lastClaim = new Date();
+        storage.setUserStorage(recipient, userWallet);
+    }
+
+    return transfer;
 }
 
 export async function handleTransfer(context: Context, wallet: ethers.Wallet, recipient: string, value: BigInt, isNative: boolean, token?: string) {
@@ -92,7 +101,7 @@ export async function getRpcProvider(networkId: NetworkId) {
 }
 
 export async function getWalletSigner(privateKey: string, networkId: string) {
-    return new ethers.Wallet(privateKey, new ethers.providers.JsonRpcProvider("http://localhost:8545", networkId));
+    const id = networkId === "31337" ? "1337" : networkId;
+    const rpcProvider = await getRpcProvider(id as NetworkId);
+    return new ethers.Wallet(privateKey, rpcProvider);
 }
-
-

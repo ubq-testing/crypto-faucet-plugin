@@ -1,12 +1,12 @@
 import { Args, Context } from "../types";
-import { logAndComment, throwError } from "../utils/logger";
+import { logAndComment } from "../utils/logger";
 
-export async function register(context: Context, args: Args) {
+export async function register(context: Context<"issue_comment.created">, args: Args) {
     const { storage } = context;
-    const { recipient: username } = args;
+    let { recipient: username } = args;
 
     if (!username) {
-        throwError("No username found in args");
+        username = context.payload.comment?.user?.login ?? context.payload.sender.login;
     }
 
     const user = storage.getUserStorage(username);

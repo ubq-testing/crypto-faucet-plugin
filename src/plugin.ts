@@ -1,12 +1,12 @@
 import { Octokit } from "@octokit/rest";
 import { Env, PluginInputs } from "./types";
 import { Context } from "./types";
-import { isIssueCommentEvent } from "./types/typeguards";
 import { LogLevel, Logs } from "@ubiquity-dao/ubiquibot-logger";
 import { register } from "./handlers/register";
 import { faucet } from "./handlers/faucet";
 import { logAndComment, throwError } from "./utils/logger";
 import { Storage } from "./adapters/storage";
+import { gasSubsidize } from "./handlers/gas-subsidize";
 
 export async function runPlugin(context: Context) {
   const { logger, eventName } = context;
@@ -15,30 +15,48 @@ export async function runPlugin(context: Context) {
 
   if (isIssueCommentEvent(context)) {
     return await handleSlashCommand(context);
-  } else {
+  } else if (isIssueClosedEvent(context)) {
+    return await gasSubsidize(context);
+  } {
     logger.info(`Ignoring event ${eventName}`);
   }
 }
 
+function isCommentEvent(context: Context): context is Context<"issue_comment.created"> {
+  return context.eventName === "issue_comment.created";
+}
+
+function isIssueCommentEvent(context: Context): context is Context<"issue_comment.created"> {
+  return isCommentEvent(context) && context.payload.comment.body.startsWith("/");
+}
+
+function isIssueClosedEvent(context: Context): context is Context<"issues.closed"> {
+  return context.eventName === "issues.closed";
+}
+
 async function handleSlashCommand(context: Context) {
-  const { payload: { comment: { body } } } = context;
-  const [command, ...args] = body.split(" ");
-  const params = await parseArgs(context, args.filter(arg => arg !== ""))
-  switch (command) {
-    case "/register":
-      return register(context, params);
-    case "/faucet":
-      if (Object.keys(params).length < 2) {
-        await logAndComment(context, "error", "Invalid number of arguments");
-        throwError("Invalid number of arguments");
-      }
-      return faucet(context, params);
-    default:
-      throwError("Unknown command", { command });
+  if (isIssueCommentEvent(context)) {
+    const { payload: { comment: { body } } } = context;
+    const [command, ...args] = body.split(" ");
+    const params = await parseArgs(context, args.filter(arg => arg !== ""))
+    switch (command) {
+      case "/register":
+        return register(context, params);
+      case "/faucet":
+        if (Object.keys(params).length < 2) {
+          await logAndComment(context, "error", "Invalid number of arguments");
+          throwError("Invalid number of arguments");
+        }
+        return faucet(context, params);
+      default:
+        throwError("Unknown command", { command });
+    }
+  } else {
+    throwError("Unknown event type", { eventName: context.eventName });
   }
 }
 
-export async function parseArgs(context: Context, args: string[]) {
+export async function parseArgs(context: Context<"issue_comment.created">, args: string[]) {
   if (args.length === 4) {
     return {
       recipient: args[0].toLowerCase(),
