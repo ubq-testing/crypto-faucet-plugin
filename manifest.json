@@ -1,0 +1,11 @@
+{
+  "name": "ts-template",
+  "description": "ts-template for Ubiquibot plugins.",
+  "ubiquity:listeners": ["issue_comment.created"],
+  "commands": {
+    "command1": {
+      "ubiquity:example": "/command1 argument",
+      "description": "Command 1 with an argument."
+    }
+  }
+}
