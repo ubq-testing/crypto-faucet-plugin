@@ -19,8 +19,32 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build
+        run: yarn build
+
+      - name: Start Anvil
+        run: yarn test:anvil &
+
+      - name: Wait for Anvil
+        run: |
+          for i in {1..30}
+          do
+            if curl -s http://localhost:8545; then
+              break
+            fi
+            sleep 1
+          done || exit 1
+
       - name: Jest With Coverage
-        run: yarn install --immutable --immutable-cache --check-cache && yarn test
+        run: yarn test
 
       - name: Add Jest Report to Summary
         if: always()
