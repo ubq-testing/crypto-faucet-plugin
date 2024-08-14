@@ -21,7 +21,6 @@ export type Args = {
 
 export const pluginSettingsSchema = T.Object({
   howManyTimesUserCanClaim: T.Number({ minimum: 1, default: 1 }),
-
   /**
    * The private key of the EOA which holds the funds and
    * acts as a "faucet". This wallet should be only be used

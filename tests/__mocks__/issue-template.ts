@@ -18,9 +18,10 @@ export default {
   owner: "ubiquity",
   number: 1,
   repository_url: "https://github.com/ubiquity/test-repo",
-  state: "open",
+  state: "closed",
   title: "issue",
   updated_at: "",
+  state_reason: "completed",
   url: "",
   user: {
     login: "ubiquity",
