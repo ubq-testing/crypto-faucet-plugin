@@ -14,4 +14,5 @@ export const STRINGS = {
   INVALID_USE_OF_SLASH_COMMAND: 'Invalid use of slash command, use "/hello".',
   CONFIGURABLE_RESPONSE: "Hello, Code Reviewers!",
   INVALID_COMMAND: "/Goodbye",
+  INVALID_USE_OF_ARGS: "Invalid number of arguments",
 };

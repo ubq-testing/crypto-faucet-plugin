@@ -36,7 +36,6 @@ export async function setupTests() {
     number: 2,
     labels: [],
   });
-
 }
 
 export function createComment(comment: string, commentId: number, commenterId: number, commenterLogin: string) {
@@ -66,7 +65,7 @@ export function createComment(comment: string, commentId: number, commenterId: n
       issue_number: 1,
       user: {
         login: commenterLogin,
-        id: commenterId
+        id: commenterId,
       },
     });
   }

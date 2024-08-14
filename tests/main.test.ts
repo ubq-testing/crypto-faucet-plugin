@@ -19,10 +19,10 @@ dotenv.config();
 jest.requireActual("@octokit/rest");
 
 jest.mock("@ubiquity-dao/rpc-handler");
-const mockRPCHandler = {
+const mockRpcHandler = {
   getFastestRpcProvider: jest.fn().mockResolvedValue(new ethers.providers.JsonRpcProvider("http://localhost:8545")),
 };
-(RPCHandler as unknown as jest.Mock).mockImplementation(() => mockRPCHandler);
+(RPCHandler as unknown as jest.Mock).mockImplementation(() => mockRpcHandler);
 
 const octokit = new Octokit();
 
@@ -91,7 +91,7 @@ describe("Plugin tests", () => {
     const context = createIssuesClosedContext(
       db.repo.findFirst({ where: { id: { equals: 1 } } }) as unknown as Context["payload"]["repository"],
       db.users.findFirst({ where: { id: { equals: 1 } } }) as unknown as Context["payload"]["sender"],
-      db.issue.findFirst({ where: { id: { equals: 1 } } }) as unknown as Context<"issues.closed">["payload"]["issue"],
+      db.issue.findFirst({ where: { id: { equals: 1 } } }) as unknown as Context<"issues.closed">["payload"]["issue"]
     );
     const result = await runPlugin(context);
     if (result && Array.isArray(result)) {
@@ -110,19 +110,13 @@ describe("Plugin tests", () => {
   });
 });
 
-function createContext(
-  commentBody: string,
-  repoId: number = 1,
-  payloadSenderId: number = 1,
-  commentId: number = 1,
-  issueOne: number = 1
-) {
+function createContext(commentBody: string, repoId: number = 1, payloadSenderId: number = 1, commentId: number = 1, issueOne: number = 1) {
   const repo = db.repo.findFirst({ where: { id: { equals: repoId } } }) as unknown as Context["payload"]["repository"];
   const sender = db.users.findFirst({ where: { id: { equals: payloadSenderId } } }) as unknown as Context["payload"]["sender"];
   const issue1 = db.issue.findFirst({ where: { id: { equals: issueOne } } }) as unknown as Context["payload"]["issue"];
 
   createComment(commentBody, commentId, 3, "test");
-  const comment = db.issueComments.findFirst({ where: { id: { equals: commentId } } })
+  const comment = db.issueComments.findFirst({ where: { id: { equals: commentId } } });
 
   const context = createContextInner(repo, sender, issue1, comment);
   const infoSpy = jest.spyOn(context.logger, "info");
@@ -180,7 +174,7 @@ function createContextInner(
 function createIssuesClosedContext(
   repo: Context["payload"]["repository"],
   sender: Context["payload"]["sender"],
-  issue: Context<"issues.closed">["payload"]["issue"],
+  issue: Context<"issues.closed">["payload"]["issue"]
 ) {
   const ctx: Context<"issues.closed"> = {
     eventName: "issues.closed",

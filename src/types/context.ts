@@ -5,7 +5,7 @@ import { PluginSettings } from "./plugin-inputs";
 import { Logs } from "@ubiquity-dao/ubiquibot-logger";
 import { Storage } from "../adapters/storage";
 
-export type SupportedEventsU = "issue_comment.created" | "issues.closed"
+export type SupportedEventsU = "issue_comment.created" | "issues.closed";
 
 export type SupportedEvents = {
   [K in SupportedEventsU]: K extends WebhookEventName ? WebhookEvent<K> : never;
