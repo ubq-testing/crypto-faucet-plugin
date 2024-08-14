@@ -20,7 +20,7 @@ export async function setupTests() {
     id: 1,
     name: STRINGS.TEST_REPO,
     owner: {
-      login: STRINGS.USER_1,
+      login: STRINGS.UBIQUITY,
       id: 1,
     },
     issues: [],
@@ -37,10 +37,9 @@ export async function setupTests() {
     labels: [],
   });
 
-  createComment("/Hello", 1);
 }
 
-export function createComment(comment: string, commentId: number) {
+export function createComment(comment: string, commentId: number, commenterId: number, commenterLogin: string) {
   const isComment = db.issueComments.findFirst({
     where: {
       id: {
@@ -66,8 +65,8 @@ export function createComment(comment: string, commentId: number) {
       body: comment,
       issue_number: 1,
       user: {
-        login: STRINGS.USER_1,
-        id: 1,
+        login: commenterLogin,
+        id: commenterId
       },
     });
   }

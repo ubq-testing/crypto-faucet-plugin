@@ -48,7 +48,7 @@ class Anvil {
 
         console.log(`Forking with RPC: ${rpc}`);
 
-        const anvil = spawnSync("anvil", ["--chain-id", "100", "--fork-url", rpc, "--host", "127.0.0.1", "--port", "8545"], {
+        const anvil = spawnSync("anvil", ["--chain-id", "1337", "--fork-url", rpc, "--host", "127.0.0.1", "--port", "8545"], {
             stdio: "inherit",
         });
 

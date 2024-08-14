@@ -22,7 +22,9 @@ export default {
   title: "issue",
   updated_at: "",
   url: "",
-  user: null,
+  user: {
+    login: "ubiquity",
+  },
   repo: "test-repo",
   labels: [
     {
@@ -37,7 +39,7 @@ export default {
   ],
   body: "body",
   assignee: {
-    login: "",
+    login: "keyrxng",
     avatar_url: "",
     email: "undefined",
     events_url: "",

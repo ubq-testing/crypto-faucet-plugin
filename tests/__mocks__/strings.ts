@@ -8,7 +8,7 @@ export const STRINGS = {
   EXITING_HELLO_WORLD: "Exiting helloWorld",
   ERROR_CREATING_COMMENT: "Error creating comment:",
   EXECUTING_HELLO_WORLD: "Executing helloWorld:",
-  USER_1: "ubiquity",
+  UBIQUITY: "ubiquity",
   USER_2: "user2",
   CALLER_LOGS_ANON: "_Logs.<anonymous>",
   INVALID_USE_OF_SLASH_COMMAND: 'Invalid use of slash command, use "/hello".',

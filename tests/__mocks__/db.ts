@@ -33,7 +33,10 @@ export const db = factory({
     number: Number,
     updated_at: Date,
     url: String,
-    user: nullable(Object),
+    user: {
+      login: String,
+      id: Number,
+    },
     milestone: nullable(Object),
     assignee: nullable({
       avatar_url: String,

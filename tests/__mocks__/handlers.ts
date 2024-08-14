@@ -54,8 +54,13 @@ export const handlers = [
         claimed: 0,
         lastClaim: null,
         wallet: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      },
+      "ubiquity": {
+        claimed: 0,
+        lastClaim: null,
+        wallet: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
       }
-    }
+    };
     return HttpResponse.json({
       content: Buffer.from(JSON.stringify(storage)).toString("base64"),
     });
