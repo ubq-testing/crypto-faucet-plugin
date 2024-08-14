@@ -34,7 +34,7 @@ export async function run() {
 
 async function returnDataToKernel(repoToken: string, stateId: string, output: object) {
   const octokit = new Octokit({ auth: repoToken });
-  await octokit.repos.createDispatchEvent({
+  await octokit.rest.repos.createDispatchEvent({
     owner: github.context.repo.owner,
     repo: github.context.repo.repo,
     event_type: "return_data_to_ubiquibot_kernel",

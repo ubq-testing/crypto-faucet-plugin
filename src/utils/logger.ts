@@ -13,7 +13,7 @@ export async function logAndComment(context: Context, type: LogLevel, message: s
   const log = logger[type](message, metadata);
 
   if (log) {
-    await octokit.issues.createComment({
+    await octokit.rest.issues.createComment({
       owner: payload.repository.owner.login,
       repo: payload.repository.name,
       issue_number: payload.issue.number,

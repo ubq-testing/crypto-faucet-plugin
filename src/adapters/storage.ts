@@ -49,7 +49,7 @@ export class Storage {
     const { octokit, payload } = context;
 
     try {
-      await octokit.repos.createOrUpdateFileContents({
+      await octokit.rest.repos.createOrUpdateFileContents({
         owner: payload.repository.owner.login,
         repo: "ubiquibot-config",
         path: manifest.name + "-storage.json",
@@ -68,7 +68,7 @@ export class Storage {
   async fetchStorage(context: Context) {
     const { octokit, payload } = context;
     try {
-      const { data } = await octokit.repos.getContent({
+      const { data } = await octokit.rest.repos.getContent({
         owner: payload.repository.owner.login,
         repo: "ubiquibot-config",
         path: manifest.name + "-storage.json",
