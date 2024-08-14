@@ -3,6 +3,7 @@ import { EmitterWebhookEvent as WebhookEvent, EmitterWebhookEventName as Webhook
 import { Env } from "./env";
 import { PluginSettings } from "./plugin-inputs";
 import { Logs } from "@ubiquity-dao/ubiquibot-logger";
+import { Storage } from "../adapters/storage";
 
 export type SupportedEventsU = "issue_comment.created";
 
@@ -17,4 +18,5 @@ export interface Context<T extends SupportedEventsU = SupportedEventsU, TU exten
   config: PluginSettings;
   env: Env;
   logger: Logs;
+  storage: Storage;
 }
