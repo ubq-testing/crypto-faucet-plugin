@@ -2,25 +2,35 @@ import { Octokit } from "@octokit/rest";
 import { Env, PluginInputs } from "./types";
 import { Context } from "./types";
 import { isIssueCommentEvent } from "./types/typeguards";
-import { helloWorld } from "./handlers/hello-world";
 import { LogLevel, Logs } from "@ubiquity-dao/ubiquibot-logger";
+import { register } from "./handlers/register";
+import { faucet } from "./handlers/faucet";
+import { throwError } from "./utils/logger";
+import { Storage } from "./adapters/storage";
 
-/**
- * The main plugin function. Split for easier testing.
- */
 export async function runPlugin(context: Context) {
   const { logger, eventName } = context;
 
   if (isIssueCommentEvent(context)) {
-    return await helloWorld(context);
+    return handleSlashCommand(context);
+  } else {
+    logger.info(`Ignoring event ${eventName}`);
   }
-
-  logger.error(`Unsupported event: ${eventName}`);
 }
 
-/**
- * How a worker executes the plugin.
- */
+function handleSlashCommand(context: Context) {
+  const { payload: { comment: { body } } } = context;
+  const [command, ...args] = body.split(" ");
+  switch (command) {
+    case "/register":
+      return register(context);
+    case "/faucet":
+      return faucet(context, args);
+    default:
+      throwError("Unknown command", { command });
+  }
+}
+
 export async function plugin(inputs: PluginInputs, env: Env) {
   const octokit = new Octokit({ auth: inputs.authToken });
 
@@ -31,18 +41,9 @@ export async function plugin(inputs: PluginInputs, env: Env) {
     octokit,
     env,
     logger: new Logs("info" as LogLevel),
+    storage: {} as Storage,
   };
-
-  /**
-   * NOTICE: Consider non-database storage solutions unless necessary
-   *
-   * Initialize storage adapters here. For example, to use Supabase:
-   *
-   * import { createClient } from "@supabase/supabase-js";
-   *
-   * const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_KEY);
-   * context.adapters = createAdapters(supabase, context);
-   */
+  context.storage = await Storage.getInstance(context);
 
   return runPlugin(context);
 }
