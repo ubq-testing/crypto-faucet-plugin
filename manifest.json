@@ -1,11 +1,17 @@
 {
-  "name": "ts-template",
-  "description": "ts-template for Ubiquibot plugins.",
-  "ubiquity:listeners": ["issue_comment.created"],
+  "name": "crypto-faucet",
+  "description": "A multi-network supporting faucet for gas subsidies, token distributions, and more.",
+  "ubiquity:listeners": [
+    "issue_comment.created"
+  ],
   "commands": {
-    "command1": {
-      "ubiquity:example": "/command1 argument",
-      "description": "Command 1 with an argument."
+    "register": {
+      "ubiquity:example": "/register",
+      "description": "Renders a link to the account abstraction user interface."
+    },
+    "faucet": {
+      "ubiquity:example": "/faucet keyrxng gnosis 1 xdai",
+      "description": "Admin command to manually distribute tokens to a user."
     }
   }
 }
