@@ -13,8 +13,8 @@ export async function faucet(context: Context, args: Args) {
   const { config, storage } = context;
   const { recipient, networkId, amount, token } = args;
 
-  const userWallet = storage.getUserStorage(recipient);
-  if (!userWallet.wallet) {
+  const userStorage = storage.getUserStorage(recipient);
+  if (!userStorage.wallet) {
     return await register(context as Context<"issue_comment.created">, args);
   }
 
@@ -48,13 +48,14 @@ export async function faucet(context: Context, args: Args) {
   if (!value || value <= BigInt(0)) {
     return throwError("Invalid amount");
   }
-  const wallet = await getWalletSigner(config.fundingWalletPrivateKey, networkId);
-  const transfer = await handleTransfer(context, wallet, userWallet.wallet, value, isNative, token);
 
-  if (transfer) {
-    userWallet.claimed++;
-    userWallet.lastClaim = new Date();
-    storage.setUserStorage(recipient, userWallet);
+  const wallet = await getWalletSigner(config.fundingWalletPrivateKey, networkId);
+  const transfer = await handleTransfer(context, wallet, userStorage.wallet, value, isNative, token);
+
+  if (transfer && transfer.transactionHash) {
+    userStorage.claimed++;
+    userStorage.lastClaim = new Date();
+    storage.setUserStorage(recipient, userStorage);
   }
 
   return transfer;

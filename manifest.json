@@ -1,9 +1,7 @@
 {
   "name": "crypto-faucet",
   "description": "A multi-network supporting faucet for gas subsidies, token distributions, and more.",
-  "ubiquity:listeners": [
-    "issue_comment.created"
-  ],
+  "ubiquity:listeners": ["issue_comment.created"],
   "commands": {
     "register": {
       "ubiquity:example": "/register",
