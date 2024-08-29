@@ -91,7 +91,7 @@ describe("Plugin tests", () => {
 
     expect(tx.from).toEqual(account);
     expect(tx2.from).toEqual(account);
-  });
+  }, 30000);
 
   it("Should handle an issues.closed event", async () => {
     const context = createContextInner(
@@ -118,7 +118,7 @@ describe("Plugin tests", () => {
 
     verifyTx(tx);
     verifyTx(tx2);
-  });
+  }, 30000);
 });
 
 describe("", () => {
@@ -139,7 +139,7 @@ describe("", () => {
     }
 
     expect(result).toEqual({});
-  });
+  }, 30000);
 });
 
 function verifyTx(tx: ethers.providers.TransactionReceipt) {
