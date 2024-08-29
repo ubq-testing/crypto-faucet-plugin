@@ -1,13 +1,15 @@
 import { ethers } from "ethers";
 import { Context } from "../types";
 import { throwError } from "../utils/logger";
-import { faucet } from "./faucet";
+import { faucet, getRpcProvider } from "./faucet";
+import { NetworkId } from "@ubiquity-dao/rpc-handler";
 
 export async function gasSubsidize(context: Context) {
   const {
     payload,
     config: { networkId, gasSubsidyAmount },
     adapters: { supabase },
+    logger,
   } = context;
   const { issue } = payload;
 
@@ -29,13 +31,22 @@ export async function gasSubsidize(context: Context) {
 
   for (const user of users) {
     if (!user?.login) continue;
-    const userWallet = await supabase.user.getWalletByUserId(user.id, payload.issue.id);
+    const userWallet = await supabase.user.getWalletByUserId(user.id, payload.issue.number);
     if (!userWallet) {
       continue;
     }
 
+    const userGasBalance = await fetchUserBalance(context, userWallet);
+
+    logger.info(`User ${user.login} has ${ethers.utils.formatEther(userGasBalance)} ETH`);
+
+    if (userGasBalance.gt(gasSubsidyAmount)) {
+      logger.info(`User ${user.login} already has enough gas`);
+      continue;
+    }
+
     if (await supabase.user.hasClaimedBefore(user.id)) {
-      context.logger.info(`User ${user.login} has already claimed a gas subsidy`);
+      logger.info(`User ${user.login} has already claimed a gas subsidy`);
       continue;
     }
 
@@ -47,4 +58,9 @@ export async function gasSubsidize(context: Context) {
   }
 
   return txs;
+}
+
+async function fetchUserBalance(context: Context, userWallet: string) {
+  const provider = await getRpcProvider(context.config.networkId as NetworkId);
+  return await provider.getBalance(userWallet);
 }

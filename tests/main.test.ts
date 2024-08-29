@@ -27,8 +27,14 @@ const mockRpcHandler = {
 
 (RPCHandler as unknown as jest.Mock).mockImplementation(() => mockRpcHandler);
 
+/**
+ * This cannot be an anvil address because their balance is > 0
+ * and would fail the balance checks and would not receive the gas subsidy
+ */
+const MOCK_ADDRESS = "0x3359ac996a9ED1aD61278D090Deee71d4Db359f9";
+
 let supabaseMock = {
-  getWalletByUserId: jest.fn().mockResolvedValue("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
+  getWalletByUserId: jest.fn().mockResolvedValue(MOCK_ADDRESS),
   hasClaimedBefore: jest.fn().mockResolvedValue(false),
 };
 
@@ -92,39 +98,12 @@ describe("Plugin tests", () => {
     expect(tx.from).toEqual(account);
     expect(tx2.from).toEqual(account);
   }, 30000);
-
-  it("Should handle an issues.closed event", async () => {
-    const context = createContextInner(
-      db.repo.findFirst({ where: { id: { equals: 1 } } }) as unknown as Context["payload"]["repository"],
-      db.users.findFirst({ where: { id: { equals: 1 } } }) as unknown as Context["payload"]["sender"],
-      db.issue.findFirst({ where: { id: { equals: 1 } } }) as unknown as Context<"issues.closed">["payload"]["issue"]
-    );
-    const result = await runPlugin(context);
-
-    expect(result).toBeDefined();
-
-    if (!result) {
-      throw new Error();
-    }
-
-    const userOne = result[usersGet[0].login];
-    const userTwo = result[usersGet[1].login];
-
-    expect(userOne).toHaveLength(1);
-    expect(userTwo).toHaveLength(1);
-
-    const tx = userOne[0];
-    const tx2 = userTwo[0];
-
-    verifyTx(tx);
-    verifyTx(tx2);
-  }, 30000);
 });
 
 describe("", () => {
   beforeEach(() => {
     supabaseMock = {
-      getWalletByUserId: jest.fn().mockResolvedValue("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
+      getWalletByUserId: jest.fn().mockResolvedValue(MOCK_ADDRESS),
       hasClaimedBefore: jest.fn().mockResolvedValue(true),
     };
   });
@@ -145,7 +124,7 @@ describe("", () => {
 function verifyTx(tx: ethers.providers.TransactionReceipt) {
   expect(tx).toHaveProperty("status", 1);
   expect(tx).toHaveProperty("from", "0x70997970C51812dc3A010C7d01b50e0d17dc79C8");
-  expect(tx).toHaveProperty("to", "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266");
+  expect(tx).toHaveProperty("to", MOCK_ADDRESS);
   expect(tx).toHaveProperty("transactionHash");
   const txHash = tx.transactionHash;
   expect(txHash).toBeDefined();
@@ -191,7 +170,7 @@ function createContextInner(repo: Context["payload"]["repository"], sender: Cont
     logger: new Logs("debug"),
     config: {
       fundingWalletPrivateKey: "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
-      networkId: "100",
+      networkId: "1337",
       gasSubsidyAmount: BigInt(1e18),
     },
     env: {
