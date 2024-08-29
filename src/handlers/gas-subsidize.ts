@@ -1,3 +1,4 @@
+import { ethers } from "ethers";
 import { Context } from "../types";
 import { throwError } from "../utils/logger";
 import { faucet } from "./faucet";
@@ -24,7 +25,7 @@ export async function gasSubsidize(context: Context) {
 
   users.push(issue.user);
 
-  const txs = [];
+  const txs: Record<string, ethers.providers.TransactionReceipt[]> = {};
 
   for (const user of users) {
     if (!user?.login) continue;
@@ -38,7 +39,11 @@ export async function gasSubsidize(context: Context) {
       continue;
     }
 
-    txs.push(await faucet(context, { recipient: userWallet, networkId, amount: gasSubsidyAmount }));
+    txs[user.login] ??= [];
+    const tx = await faucet(context, { recipient: userWallet, networkId, amount: gasSubsidyAmount });
+    if (tx) {
+      txs[user.login].push(tx);
+    }
   }
 
   return txs;

@@ -1,4 +1,4 @@
-import { LogLevel, Logs } from "@ubiquity-dao/ubiquibot-logger";
+import { LogLevel, Logs, Metadata } from "@ubiquity-dao/ubiquibot-logger";
 import { Context } from "../types";
 
 // typed as never so that ts registers that it cannot return undefined
@@ -8,7 +8,7 @@ export function throwError(err: string, rest?: object): never {
   throw new Error(`${error?.logMessage.diff}\n${JSON.stringify(error?.metadata, null, 2)}`);
 }
 
-export async function logAndComment(context: Context, type: LogLevel, message: string, metadata?: object) {
+export async function logAndComment(context: Context, type: LogLevel, message: string, metadata?: Metadata) {
   const { logger, octokit, payload } = context;
   const log = logger[type](message, metadata);
 

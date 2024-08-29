@@ -6,12 +6,29 @@ import { gasSubsidize } from "./handlers/gas-subsidize";
 import { isIssueClosedEvent } from "./types/typeguards";
 import { createAdapters } from "./adapters";
 import { createClient } from "@supabase/supabase-js";
+import { logAndComment } from "./utils/logger";
 
 export async function runPlugin(context: Context) {
   const { logger, eventName } = context;
 
   if (isIssueClosedEvent(context)) {
-    return await gasSubsidize(context);
+    const txs = await gasSubsidize(context);
+
+    if (!txs) {
+      logger.info("No gas subsidy transactions were sent.");
+      return;
+    }
+
+    const comment = `
+    ${Object.entries(txs).forEach(([user, txs]) => {
+      let cmt = `Gas subsidy sent to ${user}:\n`;
+      txs.forEach((tx) => {
+        cmt += `- [\`${tx.transactionHash.slice(0, 8)}\`](https://blockscan.com/tx/${tx.transactionHash})\n`;
+      });
+      return cmt + "\n";
+    })}`;
+
+    await logAndComment(context, "info", comment, { txs });
   }
 
   logger.info(`Ignoring event ${eventName}`);
