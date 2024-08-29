@@ -1,13 +1,12 @@
 import { Context } from "../types";
-import { register } from "./register";
-import { logAndComment, throwError } from "../utils/logger";
+import { throwError } from "../utils/logger";
 import { faucet } from "./faucet";
 
 export async function gasSubsidize(context: Context) {
   const {
     payload,
-    storage,
-    config: { howManyTimesUserCanClaim, networkIds, nativeGasToken },
+    config: { networkId, gasSubsidyAmount },
+    adapters: { supabase },
   } = context;
   const { issue } = payload;
 
@@ -21,28 +20,25 @@ export async function gasSubsidize(context: Context) {
     users = issue.assignees;
   } else if (issue.assignee) {
     users = [issue.assignee];
-  } else {
-    users = [];
   }
+
   users.push(issue.user);
 
   const txs = [];
 
   for (const user of users) {
     if (!user?.login) continue;
-    const { wallet, lastClaim, claimed } = storage.getUserStorage(user.login);
-    if (!wallet) {
-      await register(context as Context<"issue_comment.created">, { recipient: user.login, networkId: "1", amount: BigInt(0), token: "native" });
-      continue;
-    }
-    if (lastClaim && claimed < howManyTimesUserCanClaim) {
-      await logAndComment(context, "info", `User ${user.login} has already claimed ${claimed} times`);
+    const userWallet = await supabase.user.getWalletByUserId(user.id, payload.issue.id);
+    if (!userWallet) {
       continue;
     }
 
-    for (const networkId of networkIds) {
-      txs.push(await faucet(context, { recipient: user.login, networkId: String(networkId), amount: nativeGasToken, token: "native" }));
+    if (await supabase.user.hasClaimedBefore(user.id)) {
+      context.logger.info(`User ${user.login} has already claimed a gas subsidy`);
+      continue;
     }
+
+    txs.push(await faucet(context, { recipient: userWallet, networkId, amount: gasSubsidyAmount }));
   }
 
   return txs;

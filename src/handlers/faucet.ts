@@ -2,7 +2,6 @@ import { BigNumber, ethers } from "ethers";
 import { Args, Context } from "../types";
 import { logAndComment, throwError } from "../utils/logger";
 import { NetworkId, RPCHandler } from "@ubiquity-dao/rpc-handler";
-import { register } from "./register";
 
 function isEthAddress(address: string) {
   if (!address) return false;
@@ -10,77 +9,40 @@ function isEthAddress(address: string) {
 }
 
 export async function faucet(context: Context, args: Args) {
-  const { config, storage } = context;
-  const { recipient, networkId, amount, token } = args;
+  const { config } = context;
+  const { recipient, networkId, amount } = args;
 
-  const userStorage = storage.getUserStorage(recipient);
-  if (!userStorage.wallet) {
-    return await register(context as Context<"issue_comment.created">, args);
+  if (!isEthAddress(recipient)) {
+    return throwError("Invalid recipient address", { recipient });
   }
 
-  let value = amount || BigInt(0);
-  const isNative = token === "native";
-  const isWithoutTokenAndAmount = !(amount || token);
-  const isWithRecipientAndNetwork = recipient && networkId;
-  const isDefaultNative = isWithoutTokenAndAmount && isWithRecipientAndNetwork;
-
-  if (isNative || isDefaultNative) {
-    /**
-     * "/faucet <recipient> <networkId> <amount> <token>"
-     * OR
-     * "/faucet <recipient> <networkId>"
-     */
-
-    if (value && value === BigInt(0) && config?.nativeGasToken) {
-      value = config.nativeGasToken;
-    }
-  } else if (isWithRecipientAndNetwork && token && isEthAddress(token)) {
-    /**
-     * "/faucet <recipient> <networkId> <amount> <token>"
-     */
-    if (value && value === BigInt(0) && config.distributionTokens?.[token]) {
-      value = config.distributionTokens[token];
-    }
-  } else {
-    return throwError(`Incorrect arguments provided:`, { recipient, networkId, amount, token });
+  if (!networkId) {
+    return throwError("Network ID must be provided", { networkId });
   }
 
-  if (!value || value <= BigInt(0)) {
-    return throwError("Invalid amount");
+  if (!amount) {
+    return throwError("Amount must be provided", { amount });
   }
 
   const wallet = await getWalletSigner(config.fundingWalletPrivateKey, networkId);
-  const transfer = await handleTransfer(context, wallet, userStorage.wallet, value, isNative, token);
+  const tx = await handleTransfer(context, wallet, recipient, amount);
 
-  if (transfer && transfer.transactionHash) {
-    userStorage.claimed++;
-    userStorage.lastClaim = new Date();
-    storage.setUserStorage(recipient, userStorage);
+  if (tx) {
+    context.logger.info(`Successfully sent ${amount} to ${recipient} on network ${networkId}`);
+    return tx;
   }
 
-  return transfer;
+  return null;
 }
 
-export async function handleTransfer(context: Context, wallet: ethers.Wallet, recipient: string, value: bigint, isNative: boolean, token?: string) {
+export async function handleTransfer(context: Context, wallet: ethers.Wallet, recipient: string, value: bigint) {
   try {
-    let tx: ethers.providers.TransactionResponse | null = null;
-
-    if (isNative) {
-      tx = await wallet.sendTransaction({ to: recipient, value: BigNumber.from(value) });
-    } else if (token) {
-      const contract = new ethers.Contract(token, ["function transfer(address to, uint256 value)"], wallet.provider);
-      tx = await contract.transfer(recipient, value);
-    } else {
-      throwError("Token address must be provided for non-native transfers", { recipient, value, isNative, token });
-    }
-
+    const tx: ethers.providers.TransactionResponse = await wallet.sendTransaction({ to: recipient, value: BigNumber.from(value) });
     return tx?.hash ? await wallet.provider?.waitForTransaction(tx.hash) : null;
   } catch (err) {
     throw await logAndComment(context, "error", "Failed to send transaction", {
       err,
       recipient,
-      isNative,
-      token,
       success: false,
       value: ethers.BigNumber.from(value).toString(),
     });
