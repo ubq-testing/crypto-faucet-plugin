@@ -27,7 +27,7 @@ export async function gasSubsidize(context: Context) {
 
   users.push(issue.user);
 
-  const txs: Record<string, ethers.providers.TransactionReceipt[]> = {};
+  const txs: Record<string, ethers.providers.TransactionReceipt | null> = {};
 
   for (const user of users) {
     if (!user?.login) continue;
@@ -50,10 +50,10 @@ export async function gasSubsidize(context: Context) {
       continue;
     }
 
-    txs[user.login] ??= [];
+    txs[user.login] ??= null;
     const tx = await faucet(context, { recipient: userWallet, networkId, amount: gasSubsidyAmount });
     if (tx) {
-      txs[user.login].push(tx);
+      txs[user.login] = tx;
     }
   }
 

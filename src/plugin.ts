@@ -20,12 +20,10 @@ export async function runPlugin(context: Context) {
     }
 
     const comment = `
-    ${Object.entries(txs).forEach(([user, txs]) => {
+    ${Object.entries(txs).forEach(([user, tx]) => {
+      if (!tx) return;
       let cmt = `Gas subsidy sent to ${user}:\n`;
-      txs.forEach((tx) => {
-        cmt += `- [\`${tx.transactionHash.slice(0, 8)}\`](https://blockscan.com/tx/${tx.transactionHash})\n`;
-      });
-      return cmt + "\n";
+      cmt += `- [\`${tx.transactionHash.slice(0, 8)}\`](https://blockscan.com/tx/${tx.transactionHash})\n`;
     })}`;
 
     await logAndComment(context, "info", comment, { txs });

@@ -83,20 +83,18 @@ describe("Plugin tests", () => {
       throw new Error();
     }
 
-    const userOne = result[usersGet[0].login];
-    const userTwo = result[usersGet[1].login];
+    const userOneTx = result[usersGet[0].login];
+    const userTwoTx = result[usersGet[1].login];
 
-    expect(userOne).toHaveLength(1);
-    expect(userTwo).toHaveLength(1);
+    if (!userOneTx || !userTwoTx) {
+      throw new Error();
+    }
 
-    const tx = userOne[0];
-    const tx2 = userTwo[0];
+    verifyTx(userOneTx);
+    verifyTx(userTwoTx);
 
-    verifyTx(tx);
-    verifyTx(tx2);
-
-    expect(tx.from).toEqual(account);
-    expect(tx2.from).toEqual(account);
+    expect(userOneTx.from).toEqual(account);
+    expect(userTwoTx.from).toEqual(account);
   }, 30000);
 });
 
