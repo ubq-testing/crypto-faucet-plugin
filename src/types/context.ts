@@ -3,9 +3,9 @@ import { EmitterWebhookEvent as WebhookEvent, EmitterWebhookEventName as Webhook
 import { Env } from "./env";
 import { PluginSettings } from "./plugin-inputs";
 import { Logs } from "@ubiquity-dao/ubiquibot-logger";
-import { Storage } from "../adapters/storage";
+import { createAdapters } from "../adapters";
 
-export type SupportedEventsU = "issue_comment.created" | "issues.closed";
+export type SupportedEventsU = "issues.closed";
 
 export type SupportedEvents = {
   [K in SupportedEventsU]: K extends WebhookEventName ? WebhookEvent<K> : never;
@@ -18,5 +18,5 @@ export interface Context<T extends SupportedEventsU = SupportedEventsU, TU exten
   config: PluginSettings;
   env: Env;
   logger: Logs;
-  storage: Storage;
+  adapters: ReturnType<typeof createAdapters>;
 }

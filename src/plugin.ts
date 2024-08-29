@@ -2,19 +2,15 @@ import { Octokit } from "@octokit/rest";
 import { Env, PluginInputs } from "./types";
 import { Context } from "./types";
 import { LogLevel, Logs } from "@ubiquity-dao/ubiquibot-logger";
-import { Storage } from "./adapters/storage";
 import { gasSubsidize } from "./handlers/gas-subsidize";
-import { isIssueClosedEvent, isIssueCommentEvent } from "./types/typeguards";
-import { handleSlashCommand } from "./utils/slash-commands";
+import { isIssueClosedEvent } from "./types/typeguards";
+import { createAdapters } from "./adapters";
+import { createClient } from "@supabase/supabase-js";
 
 export async function runPlugin(context: Context) {
   const { logger, eventName } = context;
-  context.storage = new Storage(context);
-  await context.storage.init();
 
-  if (isIssueCommentEvent(context)) {
-    return await handleSlashCommand(context);
-  } else if (isIssueClosedEvent(context)) {
+  if (isIssueClosedEvent(context)) {
     return await gasSubsidize(context);
   }
 
@@ -31,8 +27,10 @@ export async function plugin(inputs: PluginInputs, env: Env) {
     octokit,
     env,
     logger: new Logs("info" as LogLevel),
-    storage: {} as Storage,
+    adapters: {} as ReturnType<typeof createAdapters>,
   };
+
+  context.adapters = createAdapters(createClient(env.SUPABASE_URL, env.SUPABASE_KEY), context);
 
   return runPlugin(context);
 }
