@@ -35,6 +35,8 @@ export async function setupTests() {
     id: 2,
     number: 2,
     labels: [],
+    state: "closed",
+    state_reason: "completed",
   });
 }
 

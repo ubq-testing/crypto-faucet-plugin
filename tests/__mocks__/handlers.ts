@@ -1,7 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { db } from "./db";
 import issueTemplate from "./issue-template";
-import { StorageLayout } from "../../src/adapters/storage";
 /**
  * Intercepts the routes and returns a custom payload
  */
@@ -46,29 +45,6 @@ export const handlers = [
     const newItem = { id, body, issue_number: Number(issueNumber), user: db.users.getAll()[0] };
     db.issueComments.create(newItem);
     return HttpResponse.json(newItem);
-  }),
-
-  http.get("https://api.github.com/repos/:owner/:repo/contents/:path", () => {
-    const storage: StorageLayout = {
-      keyrxng: {
-        claimed: 0,
-        lastClaim: null,
-        wallet: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-      },
-      ubiquity: {
-        claimed: 0,
-        lastClaim: null,
-        wallet: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
-      },
-    };
-    return HttpResponse.json({
-      content: Buffer.from(JSON.stringify(storage)).toString("base64"),
-    });
-  }),
-  http.put("https://api.github.com/repos/:owner/:repo/contents/:path", async ({ request }) => {
-    const { content } = await getValue(request.body);
-    const storage = JSON.parse(Buffer.from(content, "base64").toString());
-    return HttpResponse.json(storage);
   }),
 ];
 

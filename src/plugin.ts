@@ -29,6 +29,7 @@ export async function runPlugin(context: Context) {
     })}`;
 
     await logAndComment(context, "info", comment, { txs });
+    return txs;
   }
 
   logger.info(`Ignoring event ${eventName}`);

@@ -5,7 +5,7 @@ import { NetworkId, RPCHandler } from "@ubiquity-dao/rpc-handler";
 
 function isEthAddress(address: string) {
   if (!address) return false;
-  return /^0x[a-fA-F0-9]{40}$/.test(address);
+  return /^0x[a-fA-F0-9]{40}$/.test(address.trim());
 }
 
 export async function faucet(context: Context, args: Args) {

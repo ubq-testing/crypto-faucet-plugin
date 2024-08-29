@@ -1,6 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Super } from "./supabase";
 import { Context } from "../../../types/context";
+import { logAndComment } from "../../../utils/logger";
 
 type Wallet = {
   address: string;
@@ -25,38 +26,11 @@ export class User extends Super {
   async getWalletByUserId(userId: number, issueNumber: number) {
     const { data, error } = (await this.supabase.from("users").select("wallets(*)").eq("id", userId).single()) as { data: { wallets: Wallet }; error: unknown };
     if ((error && !data) || !data.wallets?.address) {
-      const log = this.context.logger.error("No wallet address found", { userId, issueNumber });
-      await addCommentToIssue(this.context, log.logMessage.diff);
+      throw logAndComment(this.context, "error", "No wallet address found", { userId, issueNumber });
     } else {
       this.context.logger.info("Successfully fetched wallet", { userId, address: data.wallets?.address });
     }
 
     return data?.wallets?.address || null;
-  }
-}
-
-async function addCommentToIssue(context: Context, message: string) {
-  const { payload, octokit } = context;
-  const {
-    repository: { full_name },
-    issue,
-  } = payload;
-
-  if (!full_name) {
-    context.logger.error("No issue found to comment on");
-    return;
-  }
-
-  const [owner, repo] = full_name.split("/");
-
-  try {
-    await octokit.rest.issues.createComment({
-      owner,
-      repo,
-      issue_number: issue.number,
-      body: message,
-    });
-  } catch (e) {
-    context.logger.error("Error adding comment to issue", { owner, repo, issue_number: issue.number });
   }
 }
